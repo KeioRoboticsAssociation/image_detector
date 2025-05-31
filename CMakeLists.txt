@@ -14,6 +14,14 @@ find_package(image_transport REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/BallPosition.msg"
+  "msg/LineSegment.msg"
+  "msg/BallPositionArray.msg"
+  "msg/LineSegmentArray.msg"
+  DEPENDENCIES geometry_msgs std_msgs builtin_interfaces
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

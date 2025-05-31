@@ -8,6 +8,8 @@
 #include <opencv2/opencv.hpp>
 #include "image_detector/msg/line_segment.hpp"
 #include "image_detector/msg/ball_position.hpp"
+#include "image_detector/msg/ball_position_array.hpp"
+#include "image_detector/msg/line_segment_array.hpp"
 
 struct LineParams {
   double rho;
