@@ -1,0 +1,2 @@
+string color
+geometry_msgs/Point position

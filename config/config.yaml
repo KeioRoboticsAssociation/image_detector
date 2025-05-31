@@ -1,0 +1,25 @@
+camera:
+  input_topic: "/camera/resize_hsv/image_raw"
+
+detection:
+  line:
+    rho: 1
+    theta: 1.0
+    threshold: 50
+    min_line_length: 50
+    max_line_gap: 10
+
+  balls:
+    - name: "red"
+      hsv_lower: [0, 120, 70]
+      hsv_upper: [10, 255, 255]
+    - name: "blue"
+      hsv_lower: [100, 150, 0]
+      hsv_upper: [140, 255, 255]
+
+outputs:
+  line_topic: "/detection/lines"
+  ball_topic: "/detection/balls"
+
+node_parameters:
+  queue_size: 10
