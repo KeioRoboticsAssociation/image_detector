@@ -51,13 +51,6 @@ DetectorNode::DetectorNode()
   line_pub_ = this->create_publisher<image_detector::msg::LineSegmentArray>(line_topic_, queue_size_);
   ball_pub_ = this->create_publisher<image_detector::msg::BallPositionArray>(ball_topic_, queue_size_);
 
-  // Subscriber
-  image_transport::ImageTransport it(shared_from_this());
-  sub_ = it.subscribe(
-    input_topic_, queue_size_,
-    std::bind(&DetectorNode::imageCallback, this, std::placeholders::_1)
-  );
-
   RCLCPP_INFO(this->get_logger(), "DetectorNode started: input=%s", input_topic_.c_str());
   RCLCPP_INFO(this->get_logger(), "Publishing lines to: %s", line_topic_.c_str());
   RCLCPP_INFO(this->get_logger(), "Publishing balls to: %s", ball_topic_.c_str());
@@ -149,7 +142,22 @@ int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
   auto node = std::make_shared<DetectorNode>();
+  
+  // ノードが完全に構築された後にサブスクライバーを設定
+  node->setupSubscriber();
+  
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
+}
+
+void DetectorNode::setupSubscriber()
+{
+  // 通常のROS2サブスクリプションを使用（image_transportの代わりに）
+  image_sub_ = this->create_subscription<sensor_msgs::msg::Image>(
+    input_topic_, queue_size_,
+    std::bind(&DetectorNode::imageCallback, this, std::placeholders::_1)
+  );
+  
+  RCLCPP_INFO(this->get_logger(), "Subscriber setup complete");
 }

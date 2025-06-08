@@ -3,7 +3,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <geometry_msgs/msg/point.hpp>
-#include <image_transport/image_transport.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/opencv.hpp>
 #include "image_detector/msg/line_segment.hpp"
@@ -28,12 +27,13 @@ struct BallColor {
 class DetectorNode : public rclcpp::Node {
 public:
   DetectorNode();
+  void setupSubscriber();  // publicに移動
 
 private:
   void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr & msg);
 
   // --- Subscribers / Publishers ---
-  image_transport::Subscriber sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;  // image_transportを使わない
   // Array型に修正
   rclcpp::Publisher<image_detector::msg::LineSegmentArray>::SharedPtr line_pub_;
   rclcpp::Publisher<image_detector::msg::BallPositionArray>::SharedPtr ball_pub_;
