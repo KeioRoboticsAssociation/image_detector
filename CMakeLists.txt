@@ -32,8 +32,10 @@ target_include_directories(detector_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
 
-# C++17の使用を指定
-target_compile_features(detector_node PUBLIC c++17)
+# C++17の使用を指定（より互換性のある方法）
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 
 # 依存関係のリンク
 ament_target_dependencies(detector_node
@@ -45,9 +47,10 @@ ament_target_dependencies(detector_node
   OpenCV
 )
 
-# カスタムメッセージへの依存関係を追加
-rosidl_target_interfaces(detector_node
+# カスタムメッセージへの依存関係を追加（新しい方法）
+rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(detector_node ${cpp_typesupport_target})
 
 # 実行ファイルのインストール
 install(TARGETS detector_node

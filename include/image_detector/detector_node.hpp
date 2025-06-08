@@ -34,8 +34,9 @@ private:
 
   // --- Subscribers / Publishers ---
   image_transport::Subscriber sub_;
-  rclcpp::Publisher<image_detector::msg::LineSegment>::SharedPtr line_pub_;
-  rclcpp::Publisher<image_detector::msg::BallPosition>::SharedPtr ball_pub_;
+  // Array型に修正
+  rclcpp::Publisher<image_detector::msg::LineSegmentArray>::SharedPtr line_pub_;
+  rclcpp::Publisher<image_detector::msg::BallPositionArray>::SharedPtr ball_pub_;
 
   // --- パラメータ ---
   std::string input_topic_;
