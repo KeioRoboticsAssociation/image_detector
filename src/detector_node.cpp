@@ -29,7 +29,6 @@ DetectorNode::DetectorNode()
   RCLCPP_INFO(this->get_logger(), "Loading ball color configurations from parameters...");
   ball_colors_.clear();
 
-  // config.yamlでは2つのボール設定があるので、それに合わせて読み込む
   // 実際のconfig.yamlの構造に基づいて、直接ボールの色を設定
   // 赤いボール
   BallColor red_ball;
@@ -44,6 +43,13 @@ DetectorNode::DetectorNode()
   blue_ball.hsv_lower = cv::Scalar(100, 150, 0);
   blue_ball.hsv_upper = cv::Scalar(140, 255, 255);
   ball_colors_.push_back(blue_ball);
+
+  // 黄色いボール
+  BallColor yellow_ball;
+  yellow_ball.name = "yellow";
+  yellow_ball.hsv_lower = cv::Scalar(20, 100, 100);
+  yellow_ball.hsv_upper = cv::Scalar(30, 255, 255);
+  ball_colors_.push_back(yellow_ball);
 
   RCLCPP_INFO(this->get_logger(), "Loaded %zu ball color configurations", ball_colors_.size());
 
@@ -62,9 +68,23 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
     // OpenCV Mat に変換
     cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
     cv::Mat bgr = cv_ptr->image;
-    cv::Mat gray, edges;
-    cv::cvtColor(bgr, gray, cv::COLOR_BGR2GRAY);
-    cv::Canny(gray, edges, 50, 150);
+    
+    // 黒い太い線のみを検出するための処理
+    cv::Mat hsv;
+    cv::cvtColor(bgr, hsv, cv::COLOR_BGR2HSV);
+    
+    // 黒色の範囲（HSVで黒は低いV値）
+    cv::Mat black_mask;
+    cv::inRange(hsv, cv::Scalar(0, 0, 0), cv::Scalar(180, 255, 50), black_mask);
+    
+    // 太い線を強調するための形態学的処理
+    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+    cv::morphologyEx(black_mask, black_mask, cv::MORPH_CLOSE, kernel);
+    cv::dilate(black_mask, black_mask, kernel, cv::Point(-1,-1), 1);
+    
+    // エッジ検出
+    cv::Mat edges;
+    cv::Canny(black_mask, edges, 50, 150);
 
     // HoughLinesP で直線検出
     std::vector<cv::Vec4i> lines;
@@ -78,9 +98,37 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
       line_params_.max_line_gap
     );
 
+    // 太い線のみをフィルタリング（近接した平行線をグループ化）
+    std::vector<cv::Vec4i> thick_lines;
+    for (size_t i = 0; i < lines.size(); i++) {
+      cv::Vec4i line1 = lines[i];
+      bool is_thick = false;
+      
+      // 他の線との距離をチェック
+      for (size_t j = 0; j < lines.size(); j++) {
+        if (i == j) continue;
+        cv::Vec4i line2 = lines[j];
+        
+        // 線分の中点間の距離を計算
+        cv::Point2f mid1((line1[0] + line1[2]) / 2.0f, (line1[1] + line1[3]) / 2.0f);
+        cv::Point2f mid2((line2[0] + line2[2]) / 2.0f, (line2[1] + line2[3]) / 2.0f);
+        float dist = cv::norm(mid1 - mid2);
+        
+        // 近接した平行線があれば太い線とみなす
+        if (dist < 20.0f) {  // 20ピクセル以内
+          is_thick = true;
+          break;
+        }
+      }
+      
+      if (is_thick) {
+        thick_lines.push_back(line1);
+      }
+    }
+
     // 検出直線を publish
     auto msg_line_array = image_detector::msg::LineSegmentArray();
-    for (const auto & l : lines) {
+    for (const auto & l : thick_lines) {
       image_detector::msg::LineSegment line_segment;
       line_segment.start.x = l[0];
       line_segment.start.y = l[1];
@@ -91,8 +139,6 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
     line_pub_->publish(msg_line_array);
 
     // ボール検出（HSV で inRange → 輪郭抽出 → 重心算出）
-    cv::Mat hsv;
-    cv::cvtColor(bgr, hsv, cv::COLOR_BGR2HSV);
     auto msg_ball_array = image_detector::msg::BallPositionArray();
     
     for (const auto & bc : ball_colors_) {
@@ -112,6 +158,11 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
         // 小さすぎる輪郭は無視
         if (area < 100) continue;
         
+        // 円形度チェック（ボールは円形に近いはず）
+        double perimeter = cv::arcLength(cnt, true);
+        double circularity = 4 * CV_PI * area / (perimeter * perimeter);
+        if (circularity < 0.7) continue;  // 円形度が低い場合はスキップ
+        
         cv::Moments m = cv::moments(cnt);
         if (m.m00 > 1e-3) {
           image_detector::msg::BallPosition bp;
@@ -126,9 +177,9 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
     ball_pub_->publish(msg_ball_array);
     
     // デバッグ情報
-    if (lines.size() > 0 || msg_ball_array.balls.size() > 0) {
-      RCLCPP_DEBUG(this->get_logger(), "Detected %zu lines and %zu balls", 
-                   lines.size(), msg_ball_array.balls.size());
+    if (thick_lines.size() > 0 || msg_ball_array.balls.size() > 0) {
+      RCLCPP_DEBUG(this->get_logger(), "Detected %zu thick black lines and %zu balls", 
+                   thick_lines.size(), msg_ball_array.balls.size());
     }
     
   } catch (cv_bridge::Exception& e) {
