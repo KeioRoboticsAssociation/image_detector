@@ -13,11 +13,11 @@ image_detector:
 
     # ballsをdetectionの外に移動し、フラットな構造にする
     detection.balls.0.name: "red"
-    detection.balls.0.hsv_lower: [40, 20, 140]
-    detection.balls.0.hsv_upper: [90, 255, 255]
+    detection.balls.0.hsv_lower: [40, 10, 140]
+    detection.balls.0.hsv_upper: [90, 140, 255]
     
     detection.balls.1.name: "blue"
-    detection.balls.1.hsv_lower: [50, 140, 0]
+    detection.balls.1.hsv_lower: [40, 140, 0]
     detection.balls.1.hsv_upper: [70, 255, 255]
     
     detection.balls.2.name: "yellow"
