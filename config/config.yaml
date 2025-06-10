@@ -11,19 +11,18 @@ image_detector:
         min_line_length: 50.0
         max_line_gap: 10.0
 
-      # ROS2では配列を直接サポートしないため、
-      # 各要素を個別のパラメータとして定義
-      balls.0.name: "red"
-      balls.0.hsv_lower: [140, 120, 70]
-      balls.0.hsv_upper: [180, 255, 255]
-      
-      balls.1.name: "blue"
-      balls.1.hsv_lower: [90, 150, 0]
-      balls.1.hsv_upper: [140, 255, 255]
-      
-      balls.2.name: "yellow"
-      balls.2.hsv_lower: [20, 40, 100]
-      balls.2.hsv_upper: [50, 255, 255]
+    # ballsをdetectionの外に移動し、フラットな構造にする
+    detection.balls.0.name: "red"
+    detection.balls.0.hsv_lower: [140, 120, 70]
+    detection.balls.0.hsv_upper: [180, 255, 255]
+    
+    detection.balls.1.name: "blue"
+    detection.balls.1.hsv_lower: [90, 150, 0]
+    detection.balls.1.hsv_upper: [140, 255, 255]
+    
+    detection.balls.2.name: "yellow"
+    detection.balls.2.hsv_lower: [20, 40, 100]
+    detection.balls.2.hsv_upper: [50, 255, 255]
 
     outputs:
       line_topic: "/detection/lines"

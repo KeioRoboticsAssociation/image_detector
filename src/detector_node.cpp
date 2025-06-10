@@ -30,80 +30,58 @@ DetectorNode::DetectorNode()
   RCLCPP_INFO(this->get_logger(), "Loading ball color configurations from parameters...");
   ball_colors_.clear();
 
-  // デバッグ: 全パラメータを表示
-  auto parameters = this->get_parameters(this->list_parameters({}, 10).names);
-  RCLCPP_INFO(this->get_logger(), "Available parameters:");
-  for (const auto& param : parameters) {
-    RCLCPP_INFO(this->get_logger(), "  %s", param.get_name().c_str());
+  // まず、ボールのパラメータを明示的に宣言
+  for (int i = 0; i < 5; i++) {  // 最大5個のボール設定
+    std::string prefix = "detection.balls." + std::to_string(i) + ".";
+    
+    try {
+      this->declare_parameter<std::string>(prefix + "name", "");
+      this->declare_parameter<std::vector<int64_t>>(prefix + "hsv_lower", std::vector<int64_t>{});
+      this->declare_parameter<std::vector<int64_t>>(prefix + "hsv_upper", std::vector<int64_t>{});
+    } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException& e) {
+      // 既に宣言されている場合は無視
+    }
   }
 
-  // ROS2では配列パラメータの直接的な処理が難しいため、
-  // 別の方法を試す: YAMLの配列は自動的にインデックス付きパラメータに変換される
-  std::vector<std::string> ball_param_names;
+  // デバッグ: 全パラメータを表示
   auto all_params = this->list_parameters({}, 10);
-  
-  // detection.ballsで始まるパラメータを探す
+  RCLCPP_INFO(this->get_logger(), "Available parameters after declaration:");
   for (const auto& param_name : all_params.names) {
-    if (param_name.find("detection.balls") == 0) {
-      ball_param_names.push_back(param_name);
+    if (param_name.find("detection.balls") != std::string::npos) {
+      RCLCPP_INFO(this->get_logger(), "  %s", param_name.c_str());
     }
   }
-  
-  RCLCPP_INFO(this->get_logger(), "Found %zu ball-related parameters", ball_param_names.size());
-  
-  // パラメータを整理して各ボールの設定を構築
-  std::map<int, BallColor> ball_configs;
-  
-  for (const auto& param_name : ball_param_names) {
-    // パラメータ名から配列インデックスを抽出
-    // 例: "detection.balls.0.name" -> index = 0
-    size_t idx_start = param_name.find("balls.") + 6;
-    size_t idx_end = param_name.find(".", idx_start);
+
+  // パラメータを読み込む
+  for (int i = 0; i < 5; i++) {
+    std::string prefix = "detection.balls." + std::to_string(i) + ".";
     
-    if (idx_start != std::string::npos && idx_end != std::string::npos) {
-      try {
-        int index = std::stoi(param_name.substr(idx_start, idx_end - idx_start));
-        
-        // パラメータの種類を判定
-        if (param_name.find(".name") != std::string::npos) {
-          std::string name;
-          this->get_parameter(param_name, name);
-          ball_configs[index].name = name;
-        } else if (param_name.find(".hsv_lower") != std::string::npos) {
-          std::vector<int64_t> values;
-          this->get_parameter(param_name, values);
-          if (values.size() >= 3) {
-            ball_configs[index].hsv_lower = cv::Scalar(
-              static_cast<double>(values[0]),
-              static_cast<double>(values[1]),
-              static_cast<double>(values[2])
-            );
-          }
-        } else if (param_name.find(".hsv_upper") != std::string::npos) {
-          std::vector<int64_t> values;
-          this->get_parameter(param_name, values);
-          if (values.size() >= 3) {
-            ball_configs[index].hsv_upper = cv::Scalar(
-              static_cast<double>(values[0]),
-              static_cast<double>(values[1]),
-              static_cast<double>(values[2])
-            );
-          }
-        }
-      } catch (const std::exception& e) {
-        RCLCPP_WARN(this->get_logger(), "Failed to parse parameter %s: %s", param_name.c_str(), e.what());
-      }
-    }
-  }
-  
-  // 有効な設定を ball_colors_ に追加
-  for (const auto& [index, config] : ball_configs) {
-    if (!config.name.empty()) {
-      ball_colors_.push_back(config);
+    std::string name;
+    std::vector<int64_t> hsv_lower, hsv_upper;
+    
+    this->get_parameter(prefix + "name", name);
+    this->get_parameter(prefix + "hsv_lower", hsv_lower);
+    this->get_parameter(prefix + "hsv_upper", hsv_upper);
+    
+    if (!name.empty() && hsv_lower.size() >= 3 && hsv_upper.size() >= 3) {
+      BallColor ball_color;
+      ball_color.name = name;
+      ball_color.hsv_lower = cv::Scalar(
+        static_cast<double>(hsv_lower[0]),
+        static_cast<double>(hsv_lower[1]),
+        static_cast<double>(hsv_lower[2])
+      );
+      ball_color.hsv_upper = cv::Scalar(
+        static_cast<double>(hsv_upper[0]),
+        static_cast<double>(hsv_upper[1]),
+        static_cast<double>(hsv_upper[2])
+      );
+      
+      ball_colors_.push_back(ball_color);
       RCLCPP_INFO(this->get_logger(), "Loaded color config for '%s': HSV lower[%.0f,%.0f,%.0f] upper[%.0f,%.0f,%.0f]",
-                  config.name.c_str(),
-                  config.hsv_lower[0], config.hsv_lower[1], config.hsv_lower[2],
-                  config.hsv_upper[0], config.hsv_upper[1], config.hsv_upper[2]);
+                  ball_color.name.c_str(),
+                  ball_color.hsv_lower[0], ball_color.hsv_lower[1], ball_color.hsv_lower[2],
+                  ball_color.hsv_upper[0], ball_color.hsv_upper[1], ball_color.hsv_upper[2]);
     }
   }
   
