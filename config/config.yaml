@@ -19,7 +19,7 @@ image_detector:
           hsv_lower: [90, 150, 0]
           hsv_upper: [140, 255, 255]
         - name: "yellow"
-          hsv_lower: [20, 100, 100]
+          hsv_lower: [20, 40, 100]
           hsv_upper: [50, 255, 255]
 
     outputs:
