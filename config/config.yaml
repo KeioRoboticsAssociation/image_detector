@@ -13,14 +13,14 @@ image_detector:
 
       balls:
         - name: "red"
-          hsv_lower: [0, 120, 70]
-          hsv_upper: [10, 255, 255]
+          hsv_lower: [140, 120, 70]
+          hsv_upper: [180, 255, 255]
         - name: "blue"
-          hsv_lower: [100, 150, 0]
+          hsv_lower: [90, 150, 0]
           hsv_upper: [140, 255, 255]
         - name: "yellow"
           hsv_lower: [20, 100, 100]
-          hsv_upper: [30, 255, 255]
+          hsv_upper: [50, 255, 255]
 
     outputs:
       line_topic: "/detection/lines"
