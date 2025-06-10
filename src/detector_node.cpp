@@ -249,8 +249,8 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
         
         // 円形度チェック（ボールは円形に近いはず）
         double perimeter = cv::arcLength(cnt, true);
-        double circularity = 4 * CV_PI * area / (perimeter * perimeter);
-        if (circularity < 0.5) continue;  // 円形度が低い場合はスキップ
+        double circularity = 4 * M_PI * area / (perimeter * perimeter);
+        if (circularity < 0.6) continue;  // 円形度が低い場合はスキップ
         
         cv::Moments m = cv::moments(cnt);
         if (m.m00 > 1e-3) {
