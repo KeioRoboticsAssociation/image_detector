@@ -133,7 +133,7 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
     
     // 黒色の範囲（HSVで黒は低いV値）
     cv::Mat black_mask;
-    cv::inRange(hsv, cv::Scalar(0, 0, 0), cv::Scalar(180, 255, 50), black_mask);
+    cv::inRange(hsv, cv::Scalar(50, 0, 0), cv::Scalar(180, 255, 50), black_mask);
     
     // 太い線を強調するための形態学的処理
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
