@@ -16,6 +16,7 @@ DetectorNode::DetectorNode()
   this->declare_parameter<double>("detection.line.max_line_gap", 10.0);
   this->declare_parameter<int>("detection.line.adaptive_block_size", 15);
   this->declare_parameter<double>("detection.line.adaptive_C", 5.0);
+  this->declare_parameter<int>("detection.line.morph_kernel_size", 5);
 
   // パラメータ取得
   this->get_parameter("camera.input_topic", input_topic_);
@@ -29,6 +30,7 @@ DetectorNode::DetectorNode()
   this->get_parameter("detection.line.max_line_gap", line_params_.max_line_gap);
   this->get_parameter("detection.line.adaptive_block_size", line_params_.adaptive_block_size);
   this->get_parameter("detection.line.adaptive_C", line_params_.adaptive_C);
+  this->get_parameter("detection.line.morph_kernel_size", line_params_.morph_kernel_size);
 
   // YAMLの配列構造から色情報を読み込む
   RCLCPP_INFO(this->get_logger(), "Loading ball color configurations from parameters...");
@@ -150,7 +152,11 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
     );
     
     // 太い線を強調するための形態学的処理
-    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+    cv::Mat kernel = cv::getStructuringElement(
+      cv::MORPH_RECT,
+      cv::Size(line_params_.morph_kernel_size, line_params_.morph_kernel_size));
+    // ノイズを除去するために開閉処理を行う
+    cv::morphologyEx(black_mask, black_mask, cv::MORPH_OPEN, kernel);
     cv::morphologyEx(black_mask, black_mask, cv::MORPH_CLOSE, kernel);
     cv::dilate(black_mask, black_mask, kernel, cv::Point(-1,-1), 1);
     

@@ -12,6 +12,7 @@ image_detector:
         max_line_gap: 50.0
         adaptive_block_size: 15
         adaptive_C: 5.0
+        morph_kernel_size: 5
 
     # ballsをdetectionの外に移動し、フラットな構造にする
     detection.balls.0.name: "red"

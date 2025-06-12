@@ -11,6 +11,7 @@ ROS 2パッケージで、カメラ画像から直線とカラーボールを検
 ## 機能
 
 ### 直線検出
+- 適応閾値後に形態学的な開閉処理を行いノイズを除去
 - Cannyエッジ検出とHoughLinesP変換を使用
 - 検出された直線の始点と終点の座標を出力
 
@@ -64,6 +65,7 @@ detection:
     max_line_gap: 10      # 直線の最大ギャップ
     adaptive_block_size: 15  # 黒線検出用の適応閾値サイズ
     adaptive_C: 5.0          # 適応閾値計算時の補正値
+    morph_kernel_size: 5     # 開閉処理に使うカーネルサイズ
 
   balls:
     - name: "red"         # 赤いボール
@@ -129,6 +131,7 @@ image_detector/BallPosition[] balls  # ボールの配列
 - `max_line_gap`: 途切れた直線をつなげたい場合は値を上げる
 - `adaptive_block_size`: 画像の照明変化に強い黒線検出のための局所領域サイズ
 - `adaptive_C`: 適応閾値計算時に引かれるオフセット値
+- `morph_kernel_size`: 黒線マスクに対する開閉処理で使用するカーネルのサイズ
 
 ### ボール検出の改善
 - HSV範囲の調整：

@@ -19,6 +19,8 @@ struct LineParams {
   // parameters for adaptive thresholding when detecting black lines
   int adaptive_block_size;
   double adaptive_C;
+  // kernel size used for morphological operations on the black line mask
+  int morph_kernel_size;
 };
 
 struct BallColor {
