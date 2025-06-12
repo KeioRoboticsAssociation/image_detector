@@ -119,12 +119,19 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
 {
   try {
     // OpenCV Mat に変換
-    cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-    cv::Mat bgr = cv_ptr->image;
-    
-    // 黒い太い線のみを検出するための処理
+    cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
     cv::Mat hsv;
-    cv::cvtColor(bgr, hsv, cv::COLOR_BGR2HSV);
+
+    if (msg->encoding == sensor_msgs::image_encodings::BGR8) {
+      cv::cvtColor(cv_ptr->image, hsv, cv::COLOR_BGR2HSV);
+    } else if (msg->encoding == sensor_msgs::image_encodings::RGB8) {
+      cv::cvtColor(cv_ptr->image, hsv, cv::COLOR_RGB2HSV);
+    } else {
+      // 入力がすでにHSVと仮定
+      hsv = cv_ptr->image;
+    }
+
+    // 黒い太い線のみを検出するための処理
     
     // 黒色の範囲（HSVで黒は低いV値）
     cv::Mat black_mask;
