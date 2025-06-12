@@ -9,7 +9,7 @@ image_detector:
         theta: 1.0
         threshold: 50
         min_line_length: 50.0
-        max_line_gap: 10.0
+        max_line_gap: 500.0
 
     # ballsをdetectionの外に移動し、フラットな構造にする
     detection.balls.0.name: "red"
