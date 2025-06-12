@@ -86,7 +86,7 @@ ros2 run image_detector detector_node --ros-args --params-file src/image_detecto
 
 ### Subscribe
 - **入力画像**: `/camera/resize_hsv/image_raw` (sensor_msgs/Image)
-  - BGR8フォーマットの画像を受信
+  - HSVフォーマットの画像を受信
 
 ### Publish
 - **検出された直線**: `/detection/lines` (image_detector/LineSegmentArray)
