@@ -10,6 +10,8 @@ image_detector:
         threshold: 50
         min_line_length: 50.0
         max_line_gap: 500.0
+        adaptive_block_size: 15
+        adaptive_C: 5.0
 
     # ballsをdetectionの外に移動し、フラットな構造にする
     detection.balls.0.name: "red"

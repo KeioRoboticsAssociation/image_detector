@@ -14,6 +14,8 @@ DetectorNode::DetectorNode()
   this->declare_parameter<int>("detection.line.threshold", 50);
   this->declare_parameter<double>("detection.line.min_line_length", 50.0);
   this->declare_parameter<double>("detection.line.max_line_gap", 10.0);
+  this->declare_parameter<int>("detection.line.adaptive_block_size", 15);
+  this->declare_parameter<double>("detection.line.adaptive_C", 5.0);
 
   // パラメータ取得
   this->get_parameter("camera.input_topic", input_topic_);
@@ -25,6 +27,8 @@ DetectorNode::DetectorNode()
   this->get_parameter("detection.line.threshold", line_params_.threshold);
   this->get_parameter("detection.line.min_line_length", line_params_.min_line_length);
   this->get_parameter("detection.line.max_line_gap", line_params_.max_line_gap);
+  this->get_parameter("detection.line.adaptive_block_size", line_params_.adaptive_block_size);
+  this->get_parameter("detection.line.adaptive_C", line_params_.adaptive_C);
 
   // YAMLの配列構造から色情報を読み込む
   RCLCPP_INFO(this->get_logger(), "Loading ball color configurations from parameters...");
@@ -130,10 +134,20 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
     RCLCPP_INFO(this->get_logger(), "Received image encoding: %s, interpreted as %s", msg->encoding.c_str(), determined_encoding.c_str());
 
     // 黒い太い線のみを検出するための処理
-    
-    // 黒色の範囲（HSVで黒は低いV値）
+
+    // Vチャンネルを利用して局所的なしきい値処理を行う
+    cv::Mat v_channel;
+    cv::extractChannel(hsv, v_channel, 2);
     cv::Mat black_mask;
-    cv::inRange(hsv, cv::Scalar(50, 0, 0), cv::Scalar(180, 255, 50), black_mask);
+    cv::adaptiveThreshold(
+      v_channel,
+      black_mask,
+      255,
+      cv::ADAPTIVE_THRESH_MEAN_C,
+      cv::THRESH_BINARY_INV,
+      line_params_.adaptive_block_size,
+      line_params_.adaptive_C
+    );
     
     // 太い線を強調するための形態学的処理
     cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
