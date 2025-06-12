@@ -135,7 +135,7 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
       determined_encoding = "HSV";
     }
 
-    RCLCPP_DEBUG(this->get_logger(), "Received image encoding: %s, interpreted as %s", msg->encoding.c_str(), determined_encoding.c_str());
+    RCLCPP_INFO(this->get_logger(), "Received image encoding: %s, interpreted as %s", msg->encoding.c_str(), determined_encoding.c_str());
 
     // 黒い太い線のみを検出するための処理
     
