@@ -178,27 +178,40 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
 
     // 太い線のみをフィルタリング（近接した平行線をグループ化）
     std::vector<cv::Vec4i> thick_lines;
+    std::vector<double> angles;
+    auto calc_angle = [](const cv::Vec4i &l) {
+      return std::atan2(static_cast<double>(l[3] - l[1]), static_cast<double>(l[2] - l[0]));
+    };
+    angles.reserve(lines.size());
+    for (const auto &l : lines) {
+      angles.push_back(calc_angle(l));
+    }
+
     for (size_t i = 0; i < lines.size(); i++) {
       cv::Vec4i line1 = lines[i];
       bool is_thick = false;
-      
-      // 他の線との距離をチェック
+
+      // 他の線との距離と角度をチェック
       for (size_t j = 0; j < lines.size(); j++) {
         if (i == j) continue;
         cv::Vec4i line2 = lines[j];
-        
+
         // 線分の中点間の距離を計算
         cv::Point2f mid1((line1[0] + line1[2]) / 2.0f, (line1[1] + line1[3]) / 2.0f);
         cv::Point2f mid2((line2[0] + line2[2]) / 2.0f, (line2[1] + line2[3]) / 2.0f);
         float dist = cv::norm(mid1 - mid2);
-        
-        // 近接した平行線があれば太い線とみなす
-        if (dist < 30.0f) {  // 30ピクセル以内
+
+        // 角度差を計算
+        double ang_diff = std::fabs(angles[i] - angles[j]);
+        ang_diff = std::min(ang_diff, CV_PI - ang_diff);
+
+        // 近接かつほぼ平行な線があれば太い線とみなす
+        if (dist < 30.0f && ang_diff < CV_PI / 18.0) {  // 30px以内かつ角度差<10度
           is_thick = true;
           break;
         }
       }
-      
+
       if (is_thick) {
         thick_lines.push_back(line1);
       }
