@@ -62,6 +62,8 @@ detection:
     threshold: 50         # 直線検出のしきい値
     min_line_length: 50   # 最小直線長
     max_line_gap: 10      # 直線の最大ギャップ
+    adaptive_block_size: 15  # 黒線検出用の適応閾値サイズ
+    adaptive_C: 5.0          # 適応閾値計算時の補正値
 
   balls:
     - name: "red"         # 赤いボール
@@ -125,6 +127,8 @@ image_detector/BallPosition[] balls  # ボールの配列
 - `threshold`: 値を下げると、より多くの直線を検出（ノイズも増える）
 - `min_line_length`: 短い直線も検出したい場合は値を下げる
 - `max_line_gap`: 途切れた直線をつなげたい場合は値を上げる
+- `adaptive_block_size`: 画像の照明変化に強い黒線検出のための局所領域サイズ
+- `adaptive_C`: 適応閾値計算時に引かれるオフセット値
 
 ### ボール検出の改善
 - HSV範囲の調整：

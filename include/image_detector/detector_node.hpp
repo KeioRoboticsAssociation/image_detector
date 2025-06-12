@@ -16,6 +16,9 @@ struct LineParams {
   int threshold;
   double min_line_length;
   double max_line_gap;
+  // parameters for adaptive thresholding when detecting black lines
+  int adaptive_block_size;
+  double adaptive_C;
 };
 
 struct BallColor {
