@@ -122,18 +122,10 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
     cv_bridge::CvImagePtr cv_ptr = cv_bridge::toCvCopy(msg, msg->encoding);
     cv::Mat hsv;
     std::string determined_encoding;
-
-    if (msg->encoding == sensor_msgs::image_encodings::BGR8) {
-      cv::cvtColor(cv_ptr->image, hsv, cv::COLOR_BGR2HSV);
-      determined_encoding = "BGR";
-    } else if (msg->encoding == sensor_msgs::image_encodings::RGB8) {
-      cv::cvtColor(cv_ptr->image, hsv, cv::COLOR_RGB2HSV);
-      determined_encoding = "RGB";
-    } else {
-      // 入力がすでにHSVと仮定
-      hsv = cv_ptr->image;
-      determined_encoding = "HSV";
-    }
+    
+    // 入力がすでにHSVと仮定
+    hsv = cv_ptr->image;
+    determined_encoding = "HSV";
 
     RCLCPP_INFO(this->get_logger(), "Received image encoding: %s, interpreted as %s", msg->encoding.c_str(), determined_encoding.c_str());
 
