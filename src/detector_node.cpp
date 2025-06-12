@@ -173,7 +173,7 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
         float dist = cv::norm(mid1 - mid2);
         
         // 近接した平行線があれば太い線とみなす
-        if (dist < 30.0f) {  // 20ピクセル以内
+        if (dist < 30.0f) {  // 30ピクセル以内
           is_thick = true;
           break;
         }
