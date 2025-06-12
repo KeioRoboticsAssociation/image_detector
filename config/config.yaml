@@ -7,9 +7,9 @@ image_detector:
       line:
         rho: 1.0
         theta: 1.0
-        threshold: 50
+        threshold: 60
         min_line_length: 50.0
-        max_line_gap: 500.0
+        max_line_gap: 50.0
         adaptive_block_size: 15
         adaptive_C: 5.0
 
