@@ -176,6 +176,19 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
       line_params_.max_line_gap
     );
 
+    // 画面上半分の線は検出しない
+    std::vector<cv::Vec4i> filtered_lines;
+    int img_height = edges.rows;
+    int half_height = img_height / 2;
+    for (const auto &l : lines) {
+      if (l[1] < half_height && l[3] < half_height) {
+        continue;  // 上半分に完全に存在する線はスキップ
+      }
+      filtered_lines.push_back(l);
+    }
+
+    lines.swap(filtered_lines);
+
     // 太い線のみをフィルタリング（近接した平行線をグループ化）
     std::vector<cv::Vec4i> thick_lines;
     std::vector<double> angles;
