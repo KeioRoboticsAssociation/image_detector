@@ -206,7 +206,7 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
         ang_diff = std::min(ang_diff, CV_PI - ang_diff);
 
         // 近接かつほぼ平行な線があれば太い線とみなす
-        if (dist < 100.0f && ang_diff < CV_PI / 18.0) {  // 30px以内かつ角度差<10度
+        if (dist < 300.0f && ang_diff < CV_PI / 18.0) {  // 30px以内かつ角度差<10度
           is_thick = true;
           break;
         }
