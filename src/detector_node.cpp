@@ -179,7 +179,7 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
     // 画面上半分の線は検出しない
     std::vector<cv::Vec4i> filtered_lines;
     int img_height = edges.rows;
-    int half_height = 247;
+    int half_height = 257;
     for (const auto &l : lines) {
       if (l[1] < half_height && l[3] < half_height) {
         continue;  // 上半分に完全に存在する線はスキップ
