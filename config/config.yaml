@@ -7,9 +7,15 @@ image_detector:
       line:
         rho: 1.0
         theta: 1.0
+<<<<<<< HEAD
         threshold: 60
         min_line_length: 100.0
         max_line_gap: 50.0
+=======
+        threshold: 50
+        min_line_length: 100.0
+        max_line_gap: 20.0
+>>>>>>> cbd98050ea604e3a746849be1f679eeff0887e1f
         adaptive_block_size: 15
         adaptive_C: 5.0
         morph_kernel_size: 5
