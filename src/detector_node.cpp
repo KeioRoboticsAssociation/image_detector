@@ -135,99 +135,94 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
 
     RCLCPP_INFO(this->get_logger(), "Received image encoding: %s, interpreted as %s", msg->encoding.c_str(), determined_encoding.c_str());
 
-    // 黒い太い線のみを検出するための処理
-
-    // Vチャンネルを利用して局所的なしきい値処理を行う
-    cv::Mat v_channel;
-    cv::extractChannel(hsv, v_channel, 2);
-    cv::Mat black_mask;
-    cv::adaptiveThreshold(
-      v_channel,
-      black_mask,
-      255,
-      cv::ADAPTIVE_THRESH_MEAN_C,
-      cv::THRESH_BINARY_INV,
-      line_params_.adaptive_block_size,
-      line_params_.adaptive_C
-    );
+    // 黒い太いビニールテープ検出のための処理
     
-    // 太い線を強調するための形態学的処理
-    cv::Mat kernel = cv::getStructuringElement(
-      cv::MORPH_RECT,
-      cv::Size(line_params_.morph_kernel_size, line_params_.morph_kernel_size));
-    // ノイズを除去するために開閉処理を行う
+    // HSV色空間で黒色を検出（SaturationとValueが低い領域）
+    cv::Mat black_mask;
+    cv::Mat s_channel, v_channel;
+    cv::extractChannel(hsv, s_channel, 1);  // Saturation
+    cv::extractChannel(hsv, v_channel, 2);  // Value
+    
+    // 黒色の条件: Saturation < 50 かつ Value < 80
+    cv::Mat s_mask, v_mask;
+    cv::threshold(s_channel, s_mask, 50, 255, cv::THRESH_BINARY_INV);
+    cv::threshold(v_channel, v_mask, 80, 255, cv::THRESH_BINARY_INV);
+    
+    // 両方の条件を満たす領域を黒色マスクとする
+    cv::bitwise_and(s_mask, v_mask, black_mask);
+    
+    // ノイズ除去のための形態学的処理
+    cv::Mat kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(3, 3));
     cv::morphologyEx(black_mask, black_mask, cv::MORPH_OPEN, kernel);
     cv::morphologyEx(black_mask, black_mask, cv::MORPH_CLOSE, kernel);
-    cv::dilate(black_mask, black_mask, kernel, cv::Point(-1,-1), 1);
     
-    // エッジ検出
-    cv::Mat edges;
-    cv::Canny(black_mask, edges, 50, 150);
-
-    // HoughLinesP で直線検出
-    std::vector<cv::Vec4i> lines;
-    cv::HoughLinesP(
-      edges,
-      lines,
-      line_params_.rho,
-      CV_PI / 180.0 * line_params_.theta,  // thetaをラジアンに変換
-      line_params_.threshold,
-      line_params_.min_line_length,
-      line_params_.max_line_gap
-    );
-
-    // 画面上半分の線は検出しない
-    std::vector<cv::Vec4i> filtered_lines;
-    int img_height = edges.rows;
-    int half_height = 257;
-    for (const auto &l : lines) {
-      if (l[1] < half_height && l[3] < half_height) {
-        continue;  // 上半分に完全に存在する線はスキップ
-      }
-      filtered_lines.push_back(l);
-    }
-
-    lines.swap(filtered_lines);
-
-    // 太い線のみをフィルタリング（近接した平行線をグループ化）
+    // 太い線を強調するための膨張処理
+    cv::Mat thick_kernel = cv::getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+    cv::dilate(black_mask, black_mask, thick_kernel, cv::Point(-1,-1), 2);
+    
+    // 輪郭検出
+    std::vector<std::vector<cv::Point>> contours;
+    cv::findContours(black_mask, contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+    
+    // 太いビニールテープの条件を満たす輪郭をフィルタリング
     std::vector<cv::Vec4i> thick_lines;
-    std::vector<double> angles;
-    auto calc_angle = [](const cv::Vec4i &l) {
-      return std::atan2(static_cast<double>(l[3] - l[1]), static_cast<double>(l[2] - l[0]));
-    };
-    angles.reserve(lines.size());
-    for (const auto &l : lines) {
-      angles.push_back(calc_angle(l));
-    }
-
-    for (size_t i = 0; i < lines.size(); i++) {
-      cv::Vec4i line1 = lines[i];
-      bool is_thick = false;
-
-      // 他の線との距離と角度をチェック
-      for (size_t j = 0; j < lines.size(); j++) {
-        if (i == j) continue;
-        cv::Vec4i line2 = lines[j];
-
-        // 線分の中点間の距離を計算
-        cv::Point2f mid1((line1[0] + line1[2]) / 2.0f, (line1[1] + line1[3]) / 2.0f);
-        cv::Point2f mid2((line2[0] + line2[2]) / 2.0f, (line2[1] + line2[3]) / 2.0f);
-        float dist = cv::norm(mid1 - mid2);
-
-        // 角度差を計算
-        double ang_diff = std::fabs(angles[i] - angles[j]);
-        ang_diff = std::min(ang_diff, CV_PI - ang_diff);
-
-        // 近接かつほぼ平行な線があれば太い線とみなす
-        if (dist < 300.0f && ang_diff < CV_PI / 18.0) {  // 30px以内かつ角度差<10度
-          is_thick = true;
-          break;
-        }
+    for (const auto& contour : contours) {
+      // 輪郭の面積をチェック（小さすぎるものは除外）
+      double area = cv::contourArea(contour);
+      if (area < 1000) continue;  // 最小面積閾値
+      
+      // 輪郭を囲む最小外接矩形を取得
+      cv::RotatedRect rect = cv::minAreaRect(contour);
+      cv::Size2f size = rect.size;
+      
+      // アスペクト比をチェック（線状の形状かどうか）
+      double aspect_ratio = std::max(size.width, size.height) / std::min(size.width, size.height);
+      if (aspect_ratio < 3.0) continue;  // 線状でない場合は除外
+      
+      // 太さをチェック（最小幅が一定以上あるか）
+      double thickness = std::min(size.width, size.height);
+      if (thickness < 8.0) continue;  // 最小太さ閾値
+      
+      // 矩形の中心点と角度を取得
+      cv::Point2f center = rect.center;
+      double angle = rect.angle;
+      
+      // 角度を正規化（-90度から90度の範囲に）
+      if (angle < -45) angle += 90;
+      
+      // 線分の端点を計算
+      double length = std::max(size.width, size.height);
+      double half_length = length / 2.0;
+      
+      // 角度から方向ベクトルを計算
+      double rad_angle = angle * CV_PI / 180.0;
+      double dx = cos(rad_angle);
+      double dy = sin(rad_angle);
+      
+      // 線分の端点を計算
+      cv::Point2f start_point(
+        center.x - dx * half_length,
+        center.y - dy * half_length
+      );
+      cv::Point2f end_point(
+        center.x + dx * half_length,
+        center.y + dy * half_length
+      );
+      
+      // 画面上半分の線は検出しない
+      if (start_point.y < 257 && end_point.y < 257) {
+        continue;
       }
-
-      if (is_thick) {
-        thick_lines.push_back(line1);
-      }
+      
+      // 線分をVec4i形式で保存
+      cv::Vec4i line_segment(
+        static_cast<int>(start_point.x),
+        static_cast<int>(start_point.y),
+        static_cast<int>(end_point.x),
+        static_cast<int>(end_point.y)
+      );
+      
+      thick_lines.push_back(line_segment);
     }
 
     // 検出直線を publish
@@ -282,7 +277,7 @@ void DetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &
     
     // デバッグ情報
     if (thick_lines.size() > 0 || msg_ball_array.balls.size() > 0) {
-      RCLCPP_DEBUG(this->get_logger(), "Detected %zu thick black lines and %zu balls", 
+      RCLCPP_DEBUG(this->get_logger(), "Detected %zu thick black vinyl tape lines and %zu balls", 
                    thick_lines.size(), msg_ball_array.balls.size());
     }
     
